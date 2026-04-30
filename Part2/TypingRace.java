@@ -3,8 +3,6 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 import javax.swing.*;
 
 /**
@@ -20,13 +18,13 @@ import javax.swing.*;
  */
 public class TypingRace
 {
-    private final int passageLength;   // Total characters in the passage to type
-    private Typist seat1Typist;
-    private Typist seat2Typist;
-    private Typist seat3Typist;
+    // Variables particular to each race
+    private final String passage;
+    private final int passageLength;
+    private final ArrayList<Typist> participants;
+    private static TypingRace race = null;
 
     // Accuracy thresholds for mistype and burnout events
-    // (Ty tuned these values "by feel". They may need adjustment.)
     private static final BigDecimal MISTYPE_BASE_CHANCE = BigDecimal.valueOf(0.15);
     private static final int SLIDE_BACK_AMOUNT = 2;
     private static final int BURNOUT_DURATION = 3;
@@ -287,37 +285,37 @@ public class TypingRace
      *
      * @param theTypist the typist to advance
      */
-    private void advanceTypist(Typist theTypist)
-    {
-        if (theTypist.isBurntOut())
-        {
+    private void advanceTypist (Typist theTypist) {
+        if (theTypist.isBurntOut()) {
             // Recovering from burnout — skip this turn
             theTypist.recoverFromBurnout();
+            theTypist.getStats().registerType(false);
             return;
         }
 
         // Attempt to type a character
         BigDecimal randomType = BigDecimal.valueOf(Math.random());
-        if ( theTypist.getAccuracy().compareTo(randomType) == 1 ) 
-        {
+        if ( theTypist.getAccuracy().compareTo(randomType) == 1 ) {
             theTypist.typeCharacter();
         }
 
         // Mistype check — the probability should reflect the typist's accuracy
         randomType = BigDecimal.valueOf(Math.random());
         BigDecimal mistypeChance = theTypist.getAccuracy().multiply(MISTYPE_BASE_CHANCE);
-        if ( mistypeChance.compareTo(randomType) == 1 )
-        {
+        if ( mistypeChance.compareTo(randomType) == 1 ) {
             theTypist.slideBack(SLIDE_BACK_AMOUNT);
             theTypist.getStats().registerMistype();
+            theTypist.getStats().registerType(false);
+        }
+        else {
+            theTypist.getStats().registerType(true);
         }
 
         // Burnout check — pushing too hard increases burnout risk
         // (probability scales with accuracy squared, capped at ~0.05)
         randomType = BigDecimal.valueOf(Math.random());
         BigDecimal burnoutChance = theTypist.getAccuracy().multiply(theTypist.getAccuracy().multiply(mistypeChance));
-        if ( ( burnoutChance.compareTo(randomType) == 1 ) && ( theTypist.getProgress() != this.passageLength ) )
-        {
+        if ( ( burnoutChance.compareTo(randomType) == 1 ) && ( theTypist.getProgress() != this.passageLength ) ) {
             theTypist.burnOut(BURNOUT_DURATION);
         }
     }
@@ -328,88 +326,64 @@ public class TypingRace
      * @param theTypist the typist to check
      * @return true if their progress has reached or passed the passage length
      */
-    private boolean raceFinishedBy(Typist theTypist)
-    {
+    private boolean raceFinishedBy (Typist theTypist) {
         return theTypist.getProgress() >= passageLength;
     }
 
     /**
-     * Prints the current state of the race to the terminal.
-     * Shows each typist's position along the passage, burnout state,
-     * and a WPM estimate based on current progress.
+     * Gets the String for the current state of the race to be displayed
+     * Shows each typist's position along the passage, burnout state, and whether they just mistyped
+     * 
+     * @return the String displaying the current progress and state of every Typist, along with race details
      */
-    private void printRace()
-    {
-        System.out.print('\u000C'); // Clear terminal
+    public String printRace () {
+        String raceRound = "\n  TYPING RACE - passage length: " + passageLength + " chars \n" 
+            + multiplePrint('=', passageLength + 3) + "\n ";
 
-        System.out.println("  TYPING RACE - passage length: " + passageLength + " chars");
-        multiplePrint('=', passageLength + 3);
-        System.out.println();
-
-        printSeat(seat1Typist);
-        System.out.println();
-
-        printSeat(seat2Typist);
-        System.out.println();
-
-        printSeat(seat3Typist);
-        System.out.println();
-
-        multiplePrint('=', passageLength + 3);
-        System.out.println();
-        System.out.println("  [~] = burnt out    [<] = just mistyped");
+        for ( Typist t : this.participants) {
+                raceRound = raceRound + "\n" + printSeat(t);
+            }
+        raceRound = raceRound + "\n" + multiplePrint('=', passageLength + 3) + "\n[~] = burnt out    [<] = just mistyped\n ";
+        return raceRound;
     }
 
     /**
-     * Prints a single typist's lane.
-     *
-     * Examples:
-     *   |          ⌨           | TURBOFINGERS (Accuracy: 0.85)
-     *   |    [zz]              | HUNT_N_PECK  (Accuracy: 0.40) BURNT OUT (2 turns)
-     *
-     * Note: Ty forgot to show when a typist has just mistyped. That would
-     * be a nice improvement — perhaps a [<] marker after their symbol.
+     * Gets the String for the current state of a single typist's lane.
      *
      * @param theTypist the typist whose lane to print
+     * @return the String detailing the current progress and state of a Typist
      */
-    private void printSeat(Typist theTypist)
-    {
-        int spacesBefore = theTypist.getProgress();
-        int spacesAfter  = passageLength - theTypist.getProgress();
-
-        System.out.print('|');
-        multiplePrint(' ', spacesBefore);
-
-        // Always show the typist's symbol so they can be identified on screen.
-        // Append ~ when burnt out so the state is visible without hiding identity.
-        System.out.print(theTypist.getSymbol());
-        if (theTypist.isBurntOut())
-        {
-            System.out.print('~');
-            spacesAfter--; // symbol + ~ together take two characters
-        }
-        else if (theTypist.getStats().getMistype())
-        {
-            System.out.print('<');
-            spacesAfter--;
+    private String printSeat (Typist theTypist) {
+        //Creates the string to show the progress
+        String[] splitPassage = passage.split("");
+        int typedLetters = theTypist.getProgress();
+        String totalString = "| ";
+        for ( int c = 0; c < typedLetters; c++ ) {
+            totalString = totalString + splitPassage[c];
         }
 
-        multiplePrint(' ', spacesAfter);
-        System.out.print('|');
-        System.out.print(' ');
+        totalString = totalString + theTypist.getSymbol();
+
+        for ( int c = typedLetters; c < splitPassage.length; c++ ) {
+            totalString = totalString + splitPassage[c];
+        }
+        totalString = totalString + " |   ";
 
         // Print name and accuracy
-        if (theTypist.isBurntOut())
-        {
-            System.out.print(theTypist.getName()
+        if (theTypist.isBurntOut()) {
+            totalString = totalString + (theTypist.getName()
                 + " (Accuracy: " + theTypist.getAccuracy() + ")"
                 + " BURNT OUT (" + theTypist.getBurnoutTurnsRemaining() + " turns)");
         }
-        else
-        {
-            System.out.print(theTypist.getName()
+        else {
+            totalString = totalString + (theTypist.getName()
                 + " (Accuracy: " + theTypist.getAccuracy() + ")");
+                if ( theTypist.getStats().getMistype() ) {
+                    int change = theTypist.getProgress() - theTypist.getStats().getLastProgress();
+                    totalString = totalString + " SLID BACK (" + change + " SPACES)";
+                }
         }
+        return totalString;
     }
 
     /**
@@ -417,16 +391,19 @@ public class TypingRace
      *
      * @param aChar the character to print
      * @param times how many times to print it
+     * @return the String of aChar the correct number of times
      */
-    private void multiplePrint(char aChar, int times)
-    {
-        int i = 0;
+    private String multiplePrint (char aChar, int times) {
+        int i = 1;
+        String total = Character.toString(aChar);
         while (i < times)
         {
-            System.out.print(aChar);
+            total = total + Character.toString(aChar);
             i = i + 1;
         }
+        return total;
     }
+
 
     /**
      * Clears the save data file by deleting and recreating it
