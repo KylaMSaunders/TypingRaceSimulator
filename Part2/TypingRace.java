@@ -16,7 +16,7 @@ import javax.swing.*;
  * We have found evidence to the contrary.
  *
  * @author TyPosaurus and Kyla Saunders
- * @version 2
+ * @version 4
  */
 public class TypingRace
 {
@@ -148,70 +148,57 @@ public class TypingRace
     }
 
     /**
-     * Starts the typing race.
-     * All typists are reset to the beginning, then the simulation runs
-     * turn by turn until one typist completes the full passage.
-     *
-     * Note from Ty: "I didn't bother printing the winner at the end,
-     * you can probably figure that out yourself."
+     * Starts the typing race by setting the frame to the correct state, resetting all Typists and feeding the strings of progress to a thread
+     * 
+     * @param frame the JFrame that the game is held in
+     * @param panel the JPanel that the game is showed on
+     * @param list the list of Strings that are given to the thread
+     * @param typists the list of all typists
+     * @param tabs the JTabbedPane holding all Panels
      */
-    @SuppressWarnings("UseSpecificCatch")
-    public void startRace()
-    {
+    public void startRace (JFrame frame, JPanel panel, JButton start, ArrayList<String> list, ArrayList<Typist> typists, JTabbedPane tabs) {
+        tabs.setEnabledAt(0, false);
         boolean finished = false;
+        panel.remove(start);
+        JTextArea textArea = new JTextArea();
+        panel.add(textArea);
 
         // Reset all typists to the start of the passage
-        seat1Typist.resetToStart();
-        seat2Typist.resetToStart();
-        seat3Typist.resetToStart();
+        for ( Typist t : this.participants ) {
+            t.resetToStart();
+        }
         
         while (!finished)
         {
             // Advance each typist by one turn
-            advanceTypist(seat1Typist);
-            advanceTypist(seat2Typist);
-            advanceTypist(seat3Typist);
-
-            // Print the current state of the race
-            printRace();
-
-            // Check if any typist has finished the passage
-            if ( raceFinishedBy(seat1Typist) || raceFinishedBy(seat2Typist) || raceFinishedBy(seat3Typist) )
-            {
-                finished = true;
+            for ( Typist t : this.participants) {
+                advanceTypist(t);
             }
 
-            // Wait 200ms between turns so the animation is visible
-            try {
-                TimeUnit.MILLISECONDS.sleep(1500);
-            } catch (Exception e) {}
+            // Print the current state of the race
+            String round = printRace();
+            list.add(round);
+
+            // Check if any typist has finished the passage
+            for ( Typist t : this.participants) {
+                if ( raceFinishedBy(t) ) {
+                    finished = true;
+                }
+            }
         }
-
-        // Creates space to print the win message
-        System.out.println();
-        System.out.println();
-
         ArrayList<Typist> winners = new ArrayList<>();
         ArrayList<Typist> losers = new ArrayList<>();
 
         // Checks which Typists won
-        if ( raceFinishedBy(seat1Typist) ) {
-            winners.add(seat1Typist);
-        }
-        else {
-            losers.add(seat1Typist);
-        }
-        if ( raceFinishedBy(seat2Typist) ) {
-            winners.add(seat2Typist);
-        }
-        else {
-            losers.add(seat2Typist);
-        }
-        if ( raceFinishedBy(seat3Typist) ) {
-            winners.add(seat3Typist);
-        }
-        else {
-            losers.add(seat3Typist);
+        for ( Typist t : this.participants) {
+            if ( raceFinishedBy(t) ) {
+                winners.add(t);
+                t.getStats().registerGame(true);
+            }
+            else {
+                losers.add(t);
+                t.getStats().registerGame(false);
+            }
         }
         
         BigDecimal newAccuracy;
@@ -220,53 +207,71 @@ public class TypingRace
         BigDecimal minAcc = BigDecimal.valueOf(0.1);
 
         // Prints the relevant message, acknowleging the winner(s) and all changes in accuracy
-        switch ( winners.size() ) {
-            case 1 -> {
-                System.out.println("The winner is " + winners.get(0).getName() + "!");
-                oldAccuracy = winners.get(0).getAccuracy();
-                if ( oldAccuracy.compareTo(one) == 0) {
-                    System.out.println("Their accuracy cannot go past 1.0.");
+        if ( winners.size() == 1 ) {
+            list.add("The winner is " + winners.get(0).getName() + "!\n");
+            oldAccuracy = winners.get(0).getAccuracy();
+            if ( oldAccuracy.compareTo(one) == 0) {
+                list.add("Their accuracy cannot go past 1.0.\n");
+                winners.get(0).setAccuracy(BigDecimal.valueOf(1.0));
+            }
+            else {
+                newAccuracy = winners.get(0).getStats().getNewAccuracy('W');
+                list.add("Their accuracy has increased to " + newAccuracy + " from " + oldAccuracy + ".\n");
+                winners.get(0).setAccuracy(newAccuracy);
+            }
+            for ( Typist t : losers) {
+                oldAccuracy = t.getAccuracy();
+                if ( oldAccuracy.compareTo(minAcc) == 0 ) {
+                    list.add( t.getName() + "'s accuracy cannot go below 0.1\n.");
+                    t.setAccuracy(BigDecimal.valueOf(0.1));
                 }
                 else {
-                    newAccuracy = winners.get(0).getStats().getNewAccuracy('W');
-                    System.out.println("Their accuracy has increased to " + newAccuracy + " from " + oldAccuracy + ".");
-                    winners.get(0).setAccuracy(newAccuracy);
-                }
-                for ( Typist t : losers) {
-                    oldAccuracy = t.getAccuracy();
-                    if ( oldAccuracy.compareTo(minAcc) == 0 ) {
-                        System.out.println( t.getName() + "'s accuracy cannot go below 0.1.");
-                    }
-                    else {
-                        newAccuracy = t.getStats().getNewAccuracy('L');
-                        System.out.println(t.getName() + "'s accuracy has decreased to " + newAccuracy + " from " + oldAccuracy + ".");
-                        t.setAccuracy(newAccuracy);
-                    }
+                    newAccuracy = t.getStats().getNewAccuracy('L');
+                    list.add(t.getName() + "'s accuracy has decreased to " + newAccuracy + " from " + oldAccuracy + ".\n");
+                    t.setAccuracy(newAccuracy);
                 }
             }
-            case 2 -> {
-                System.out.println("It is a tie between " + winners.get(0).getName() + " and " + winners.get(1).getName() + "!");
-                for ( Typist t : winners) {
-                    oldAccuracy = t.getAccuracy();
-                    System.out.println(t.getName() + "'s accuracy is unchanged from " + oldAccuracy + ".");
-                }
-                oldAccuracy = losers.get(0).getAccuracy();
-                if ( oldAccuracy.compareTo(minAcc) == 0) {
-                    System.out.println(losers.get(0).getName() + "'s accuracy cannot go below 0.1.");
+        } 
+        else if (winners.size() == participants.size() ) {
+            list.add("All three competitiors tied!\n");
+            list.add("Their accuracy is unchanged.\n");
+        }
+        else {
+            list.add("It is a tie between:");
+            for ( Typist t : winners) {
+                oldAccuracy = t.getAccuracy();
+                list.add(t.getName() + "! Their accuracy is unchanged from " + oldAccuracy + ".\n");
+            }
+            for ( Typist t : losers) {
+                oldAccuracy = t.getAccuracy();
+                if ( oldAccuracy.compareTo(minAcc) == 0 ) {
+                    list.add( t.getName() + "'s accuracy cannot go below 0.1\n.");
+                    t.setAccuracy(BigDecimal.valueOf(0.1));
                 }
                 else {
-                    newAccuracy = winners.get(0).getStats().getNewAccuracy('L');
-                    System.out.println(losers.get(0).getName() + "'s accuracy has decreased to " + newAccuracy + " from " + oldAccuracy + ".");
-                    losers.get(0).setAccuracy(newAccuracy);
+                    newAccuracy = t.getStats().getNewAccuracy('L');
+                    list.add(t.getName() + "'s accuracy has decreased to " + newAccuracy + " from " + oldAccuracy + ".\n");
+                    t.setAccuracy(newAccuracy);
                 }
-            }
-            case 3 -> {
-                System.out.println("All three competitiors tied!");
-                System.out.println("Their accuracy is unchanged.");
             }
         }
+        startThread(textArea, list);
         winners.clear();
         losers.clear();
+        try {
+            clearFile();
+            for ( Typist t : typists) {
+                t.saveData();
+            }
+        }
+        catch ( Exception e ) { }
+
+        JButton reset = new JButton("Play Again");
+        panel.add(reset);
+        try {
+            reset.addActionListener(e -> resetFrame(frame));
+        }
+        catch (Exception e) {}
     }
 
     /**
