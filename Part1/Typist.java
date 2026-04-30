@@ -1,25 +1,20 @@
 /**
- * Write a description of class Typist here.
+ * The class that defines the competitors of a typing race. Allows them
+ * to be represented as individuals, storing their individual data and 
+ * executing specific methods onto them.
  *
- * Starter code generously abandoned by Ty Posaurus, your predecessor,
- * who typed with two fingers and considered that "good enough".
- * He left a sticky note: "the slide-back thing is optional probably".
- * It is not optional. Good luck.
- *
- * @author (your name)
- * @version (a version number or a date)
+ * @author Kyla Saunders
+ * @version 1
  */
+import java.math.BigDecimal;
 public class Typist
 {
-    // Fields of class Typist
-    // Hint: you will need six fields. Think carefully about their types.
-    // One of them tracks how far along the passage the typist has reached.
-    // Another tracks whether the typist is currently burnt out.
-    // A third tracks HOW MANY turns of burnout remain (not just whether they are burnt out).
-    // The remaining three should be fairly obvious.
-
-
-
+    private final String name;
+    private char symbol;
+    private int progress;
+    private boolean burntOut;
+    private int burntTurns;
+    private BigDecimal accuracy;
 
     // Constructor of class Typist
     /**
@@ -30,11 +25,18 @@ public class Typist
      * @param typistName    the name of the typist (e.g. "TURBOFINGERS")
      * @param typistAccuracy the typist's accuracy rating, between 0.0 and 1.0
      */
-    public Typist(char typistSymbol, String typistName, double typistAccuracy)
+    @SuppressWarnings("UnnecessaryReturnStatement")
+    public Typist(char typistSymbol, String typistName, BigDecimal typistAccuracy)
     {
+        this.symbol = typistSymbol;
+        this.name = typistName;
+        this.accuracy = typistAccuracy;
 
+        this.progress = 0;
+        this.burntOut = false;
+        this.burntTurns = 0;
+        return;
     }
-
 
     // Methods of class Typist
 
