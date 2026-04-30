@@ -1,4 +1,5 @@
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -21,12 +22,12 @@ public class TypingRace
 
     // Accuracy thresholds for mistype and burnout events
     // (Ty tuned these values "by feel". They may need adjustment.)
-    private static final BigDecimal MISTYPE_BASE_CHANCE = BigDecimal.valueOf(0.3);
+    private static final BigDecimal MISTYPE_BASE_CHANCE = BigDecimal.valueOf(0.15);
     private static final int SLIDE_BACK_AMOUNT = 2;
     private static final int BURNOUT_DURATION = 3;
 
     public static void main(String[] args) {
-        TypingRace race = new TypingRace(1);
+        TypingRace race = new TypingRace(20);
         race.addTypist(new Typist('1', "TURBOFINGERS", BigDecimal.valueOf(0.8)), 1); 
         race.addTypist(new Typist('2', "QWERTY_QUEEN",  BigDecimal.valueOf(0.6)), 2);
         race.addTypist(new Typist('3', "HUNT_N_PECK",   BigDecimal.valueOf(0.3)), 3);
@@ -103,6 +104,87 @@ public class TypingRace
                 TimeUnit.MILLISECONDS.sleep(1500);
             } catch (Exception e) {}
         }
+
+        // Creates space to print the win message
+        System.out.println();
+        System.out.println();
+
+        ArrayList<Typist> winners = new ArrayList<>();
+        ArrayList<Typist> losers = new ArrayList<>();
+
+        // Checks which Typists won
+        if ( raceFinishedBy(seat1Typist) ) {
+            winners.add(seat1Typist);
+        }
+        else {
+            losers.add(seat1Typist);
+        }
+        if ( raceFinishedBy(seat2Typist) ) {
+            winners.add(seat2Typist);
+        }
+        else {
+            losers.add(seat2Typist);
+        }
+        if ( raceFinishedBy(seat3Typist) ) {
+            winners.add(seat3Typist);
+        }
+        else {
+            losers.add(seat3Typist);
+        }
+        
+        BigDecimal newAccuracy;
+        BigDecimal oldAccuracy;
+        BigDecimal one = BigDecimal.valueOf(1);
+        BigDecimal minAcc = BigDecimal.valueOf(0.1);
+
+        // Prints the relevant message, acknowleging the winner(s) and all changes in accuracy
+        switch ( winners.size() ) {
+            case 1 -> {
+                System.out.println("The winner is " + winners.get(0).getName() + "!");
+                oldAccuracy = winners.get(0).getAccuracy();
+                if ( oldAccuracy.compareTo(one) == 0) {
+                    System.out.println("Their accuracy cannot go past 1.0.");
+                }
+                else {
+                    newAccuracy = winners.get(0).getStats().getNewAccuracy('W');
+                    System.out.println("Their accuracy has increased to " + newAccuracy + " from " + oldAccuracy + ".");
+                    winners.get(0).setAccuracy(newAccuracy);
+                }
+                for ( Typist t : losers) {
+                    oldAccuracy = t.getAccuracy();
+                    if ( oldAccuracy.compareTo(minAcc) == 0 ) {
+                        System.out.println( t.getName() + "'s accuracy cannot go below 0.1.");
+                    }
+                    else {
+                        newAccuracy = t.getStats().getNewAccuracy('L');
+                        System.out.println(t.getName() + "'s accuracy has decreased to " + newAccuracy + " from " + oldAccuracy + ".");
+                        t.setAccuracy(newAccuracy);
+                    }
+                }
+            }
+            case 2 -> {
+                System.out.println("It is a tie between " + winners.get(0).getName() + " and " + winners.get(1).getName() + "!");
+                for ( Typist t : winners) {
+                    oldAccuracy = t.getAccuracy();
+                    System.out.println(t.getName() + "'s accuracy is unchanged from " + oldAccuracy + ".");
+                }
+                oldAccuracy = losers.get(0).getAccuracy();
+                if ( oldAccuracy.compareTo(minAcc) == 0) {
+                    System.out.println(losers.get(0).getName() + "'s accuracy cannot go below 0.1.");
+                }
+                else {
+                    newAccuracy = winners.get(0).getStats().getNewAccuracy('L');
+                    System.out.println(losers.get(0).getName() + "'s accuracy has decreased to " + newAccuracy + " from " + oldAccuracy + ".");
+                    losers.get(0).setAccuracy(newAccuracy);
+                }
+            }
+            case 3 -> {
+                System.out.println("All three competitiors tied!");
+                System.out.println("Their accuracy is unchanged.");
+            }
+        }
+        winners.clear();
+        losers.clear();
     }
 
     /**
