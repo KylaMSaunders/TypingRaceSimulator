@@ -422,4 +422,64 @@ public class TypingRace
             i = i + 1;
         }
     }
+
+    /**
+     * Clears the save data file by deleting and recreating it
+     */
+    private void clearFile () {
+        try {
+            File data = new File("typistSaveData.txt");
+            if ( data.delete() ) {
+                data.createNewFile();
+            }
+        }
+        catch ( IOException e ) { }
+    }
+
+    /**
+     * Handles updating the GUI at a reasonable rate
+     * 
+     * @param txt the JTextArea added to the JPanel to display the state of the race
+     * @param list the list of Strings that are printed to display the state of the race
+     */
+    @SuppressWarnings("rawtypes")
+    private static void startThread (JTextArea txt, ArrayList<String> list) {
+        @SuppressWarnings("unchecked")
+        SwingWorker<Boolean, String> sw = new SwingWorker() {
+            @Override
+            // Passes the Strings added to the list of Strings to a list of chunks for process() to handle
+            protected String doInBackground () throws Exception {
+                for ( String s : list) {
+                    publish(s);
+                    Thread.sleep(1000);
+                }
+                return null;
+            }
+            @Override
+            //Constantly runs in the background, emptying the JTextArea and adding the new state of the race, then pausing
+            protected void process (List chunks) {
+                for ( Object obj : chunks ) {
+                    String newString = String.valueOf(obj);
+                    if (newString.startsWith("\n  TYPING")) {
+                        txt.selectAll(); 
+                        txt.replaceSelection("");
+                    }
+                    txt.append(newString);
+                }
+            }
+        };
+        sw.execute();
+    }
+    /**
+     * Resets the JFrame so the game can be replayed without closing and reopening the game
+     * 
+     * @param frame the JFrame the game is held in
+     */
+    public static void resetFrame (JFrame frame) {
+        try {
+            frame.dispose();
+            main(null);
+        }
+        catch ( IOException e ) { }
+    }
 }
