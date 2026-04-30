@@ -1,6 +1,9 @@
+import java.awt.*;
+import java.io.*;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
+import javax.swing.*;
 
 /**
  * A typing race simulation. Three typists race to complete a passage of text,
@@ -26,12 +29,59 @@ public class TypingRace
     private static final int SLIDE_BACK_AMOUNT = 2;
     private static final int BURNOUT_DURATION = 3;
 
-    public static void main(String[] args) {
-        TypingRace race = new TypingRace(20);
-        race.addTypist(new Typist('1', "TURBOFINGERS", BigDecimal.valueOf(0.8)), 1); 
-        race.addTypist(new Typist('2', "QWERTY_QUEEN",  BigDecimal.valueOf(0.6)), 2);
-        race.addTypist(new Typist('3', "HUNT_N_PECK",   BigDecimal.valueOf(0.3)), 3);
-        race.startRace();
+    public static void main (String[] args) throws IOException {
+        // Set up of the Typists, indication of whether they compete and the list of strings to print the race
+        ArrayList<Typist> typists = TypingRace.declareTypists(8);
+        ArrayList<JCheckBox> checkboxes = new ArrayList<>();
+        ArrayList<String> printList = new ArrayList<>();
+        
+        // The base of each interface
+        JFrame frame = new JFrame("Typing Race");
+        JPanel racePanel = new JPanel();
+        JPanel settingsPanel = new JPanel();
+        JTabbedPane gameTabs = new JTabbedPane();
+
+        // Adding and enabling each interface
+        gameTabs.addTab("Typist Settings", settingsPanel);
+        gameTabs.addTab("Start Race", racePanel);
+        gameTabs.setEnabledAt(1, false);
+        frame.add(gameTabs);
+        frame.setSize(1250, 750);
+        frame.setVisible(true);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        // Setting up the settings page
+        settingsPanel.setLayout(new GridLayout(typists.size() + 2, 3));
+        JLabel desc1 = new JLabel("Participating bots (min 2):");
+        JLabel ph1 = new JLabel();
+        JLabel ph2 = new JLabel();
+        settingsPanel.add(desc1);
+        settingsPanel.add(ph1);
+        settingsPanel.add(ph2);
+        for ( Typist t : typists ) {
+            JLabel name = new JLabel("Competitor: " + t.getName() + " " + t.getSymbol());
+            JLabel info = new JLabel("Accuracy: " + t.getAccuracy() + 
+                "\n Win Rate: " + t.getStats().getWins() + " / " + t.getStats().getPlays() +
+                "\n Tying Rate: " + t.getStats().getTypes() + " / " + t.getStats().getTypeAttempts());
+            JCheckBox box = new JCheckBox();
+            checkboxes.add(box);
+            settingsPanel.add(name);
+            settingsPanel.add(info);
+            settingsPanel.add(box);
+        }
+        JLabel desc2 = new JLabel("Passage (max. 150 characters):");
+        JTextField passage = new JTextField("The quick brown dog jumps over the lazy fox.");
+        JButton submit = new JButton("Submit");
+        submit.addActionListener(e -> submitSettings(checkboxes, typists, passage, gameTabs));
+        settingsPanel.add(desc2);
+        settingsPanel.add(passage);
+        settingsPanel.add(submit);
+
+        // Setting up the race page
+        JButton start = new JButton("Start Race");
+        start.addActionListener(e -> race.startRace(frame, racePanel, start, printList, typists, gameTabs));
+        start.setPreferredSize(new Dimension(80, 50));
+        racePanel.add(start);
     }
 
     /**
