@@ -1,23 +1,19 @@
+import java.io.*;
+import java.math.BigDecimal;
+
 /**
  * Write a description of class Typist here.
- *
- * Starter code generously abandoned by Ty Posaurus, your predecessor,
- * who typed with two fingers and considered that "good enough".
- * He left a sticky note: "the slide-back thing is optional probably".
- * It is not optional. Good luck.
  * 
  * The class that defines the competitors of a typing race. Allows them
  * to be represented as individuals, storing their individual data and 
  * executing specific methods onto them.
  *
  * @author Kyla Saunders
- * @version 2
+ * @version 3
  */
-import java.math.BigDecimal;
-public class Typist
-{
+public class Typist {
     private final String name;
-    private char symbol;
+    private final String symbol;
     private int progress;
     private boolean burntOut;
     private int burntTurns;
@@ -29,26 +25,24 @@ public class Typist
      * Constructor for objects of class Typist.
      * Creates a new typist with a given symbol, name, and accuracy rating.
      *
-     * @param typistSymbol  a single Unicode character representing this typist (e.g. '①', '②', '③')
-     * @param typistName    the name of the typist (e.g. "TURBOFINGERS")
+     * @param typistName the name of the typist
+     * @param sym a single character representing this typist
      * @param typistAccuracy the typist's accuracy rating, between 0.0 and 1.0
+     * @param wins the number of games the Typist has won or tied first 
+     * @param plays the number of games the Typist has played
+     * @param attemptT the number of rounds the Typist has tried to type
+     * @param successT the number of times the Typist has successfully typed
      */
-    @SuppressWarnings("UnnecessaryReturnStatement")
-    public Typist(char typistSymbol, String typistName, BigDecimal typistAccuracy)
-    {
-        this.symbol = typistSymbol;
+    public Typist (String typistName, String sym, BigDecimal typistAccuracy, int wins, int plays, int attemptT, int successT) {
         this.name = typistName;
+        this.symbol = sym;
         this.accuracy = typistAccuracy;
 
         this.progress = 0;
         this.burntOut = false;
         this.burntTurns = 0;
-        this.stats = new TypistStats(typistAccuracy);
-        return;
+        this.stats = new TypistStats(typistAccuracy, wins, plays, attemptT, successT);
     }
-
-
-    // Methods of class Typist
 
     /**
      * Sets this typist into a burnout state for a given number of turns.
@@ -56,12 +50,9 @@ public class Typist
      *
      * @param turns the number of turns the burnout will last
      */
-    @SuppressWarnings("UnnecessaryReturnStatement")
-    public void burnOut(int turns)
-    {
+    public void burnOut (int turns) {
         this.burntOut = true;
         this.burntTurns = turns;
-        return;
     }
 
     /**
@@ -69,16 +60,13 @@ public class Typist
      * When the counter reaches zero, the typist recovers automatically.
      * Has no effect if the typist is not currently burnt out.
      */
-    @SuppressWarnings("UnnecessaryReturnStatement")
-    public void recoverFromBurnout()
-    {
+    public void recoverFromBurnout () {
         if ( this.burntOut == true ) {
             this.burntTurns -= 1;
             if ( this.burntTurns == 0 ) {
                 this.burntOut = false;
             }
         }
-        return;
     }
 
     /**
@@ -86,8 +74,7 @@ public class Typist
      *
      * @return accuracy as a double between 0.0 and 1.0
      */
-    public BigDecimal getAccuracy()
-    {
+    public BigDecimal getAccuracy () {
         return this.accuracy; 
     }
 
@@ -98,8 +85,7 @@ public class Typist
      *
      * @return progress as a non-negative integer
      */
-    public int getProgress()
-    {
+    public int getProgress () {
         return this.progress; 
     }
 
@@ -107,8 +93,7 @@ public class Typist
      * Returns the typist's relevant TypistStats object
      * @return a TypistStats object
      */
-    public TypistStats getStats() 
-    {
+    public TypistStats getStats () {
         return this.stats;
     }
 
@@ -117,18 +102,16 @@ public class Typist
      *
      * @return the typist's name as a String
      */
-    public String getName()
-    {
+    public String getName () {
         return this.name;
     }
 
     /**
      * Returns the character symbol used to represent this typist.
      *
-     * @return the typist's symbol as a char
+     * @return the typist's symbol as a string
      */
-    public char getSymbol()
-    {
+    public String getSymbol () {
         return this.symbol;
     }
 
@@ -138,8 +121,7 @@ public class Typist
      *
      * @return burnout turns remaining as a non-negative integer
      */
-    public int getBurnoutTurnsRemaining()
-    {
+    public int getBurnoutTurnsRemaining () {
         return this.burntTurns; 
     }
 
@@ -147,8 +129,7 @@ public class Typist
      * Resets the typist to their initial state, ready for a new race.
      * Progress returns to zero, burnout is cleared entirely.
      */
-    public void resetToStart()
-    {
+    public void resetToStart () {
         this.progress = 0;
         this.burntOut = false;
         this.burntTurns = 0;
@@ -160,8 +141,7 @@ public class Typist
      *
      * @return true if burnt out
      */
-    public boolean isBurntOut()
-    {
+    public boolean isBurntOut () {
         return this.burntOut; // placeholder - replace with correct implementation
     }
 
@@ -169,12 +149,10 @@ public class Typist
      * Advances the typist forward by one character along the passage.
      * Should only be called when the typist is not burnt out.
      */
-    @SuppressWarnings("UnnecessaryReturnStatement")
-    public void typeCharacter()
-    {
+    public void typeCharacter () {
+        this.getStats().registerProgress(this.progress);
         this.progress += 1;
         this.getStats().deregisterMistype();
-        return;
     }
 
     /**
@@ -183,15 +161,12 @@ public class Typist
      *
      * @param amount the number of characters to slide back (must be positive)
      */
-    @SuppressWarnings("UnnecessaryReturnStatement")
-    public void slideBack(int amount)
-    {
+    public void slideBack (int amount) {
         int newPosition = this.progress - amount;
         if ( newPosition < 0 ) {
             newPosition = 0;
         }
         this.progress = newPosition;
-        return;
     }
 
     /**
@@ -200,9 +175,7 @@ public class Typist
      *
      * @param newAccuracy the new accuracy rating
      */
-    @SuppressWarnings("UnnecessaryReturnStatement")
-    public void setAccuracy(BigDecimal newAccuracy)
-    {
+    public void setAccuracy (BigDecimal newAccuracy) {
         BigDecimal zero = BigDecimal.valueOf(0);
         BigDecimal one = BigDecimal.valueOf(1);
         if ( newAccuracy.compareTo(one) == 1 ) {
@@ -214,19 +187,27 @@ public class Typist
         else {
             this.accuracy = newAccuracy;
         }
-        return;
     }
 
-    /**
-     * Sets the symbol used to represent this typist.
-     *
-     * @param newSymbol the new symbol character
-     */
-    @SuppressWarnings("UnnecessaryReturnStatement")
-    public void setSymbol(char newSymbol)
-    {
-        this.symbol = newSymbol;
-        return;
+    //Saves the Typist's current data that needs to be carried over
+    public void saveData () {
+        try (PrintWriter ostream = new PrintWriter(new FileWriter("typistSaveData.txt", true))) {
+            String n = this.getName() + "\n";
+            String s = this.getSymbol() + "\n";
+            BigDecimal a = this.getAccuracy();
+            String aString = String.valueOf(a.doubleValue()) + "\n";
+            String w = String.valueOf(this.getStats().getWins()) + "\n";
+            String p = String.valueOf(this.getStats().getPlays()) + "\n";
+            String at = String.valueOf(this.getStats().getTypeAttempts()) + "\n";
+            String st = String.valueOf(this.getStats().getTypes()) + "\n";
+            ostream.write(n);
+            ostream.write(s);
+            ostream.write(aString);
+            ostream.write(w);
+            ostream.write(p);
+            ostream.write(at);
+            ostream.write(st);
+        }
+        catch ( IOException e ) { }
     }
-
 }
