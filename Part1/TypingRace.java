@@ -1,5 +1,5 @@
+import java.math.BigDecimal;
 import java.util.concurrent.TimeUnit;
-import java.lang.Math;
 
 /**
  * A typing race simulation. Three typists race to complete a passage of text,
@@ -9,21 +9,29 @@ import java.lang.Math;
  * two-finger technique". He assured us the code was "basically done".
  * We have found evidence to the contrary.
  *
- * @author TyPosaurus
- * @version 0.7 (the other 0.3 is left as an exercise for the reader)
+ * @author TyPosaurus and Kyla Saunders
+ * @version 2
  */
 public class TypingRace
 {
-    private int passageLength;   // Total characters in the passage to type
+    private final int passageLength;   // Total characters in the passage to type
     private Typist seat1Typist;
     private Typist seat2Typist;
     private Typist seat3Typist;
 
     // Accuracy thresholds for mistype and burnout events
     // (Ty tuned these values "by feel". They may need adjustment.)
-    private static final double MISTYPE_BASE_CHANCE = 0.3;
-    private static final int    SLIDE_BACK_AMOUNT   = 2;
-    private static final int    BURNOUT_DURATION     = 3;
+    private static final BigDecimal MISTYPE_BASE_CHANCE = BigDecimal.valueOf(0.3);
+    private static final int SLIDE_BACK_AMOUNT = 2;
+    private static final int BURNOUT_DURATION = 3;
+
+    public static void main(String[] args) {
+        TypingRace race = new TypingRace(1);
+        race.addTypist(new Typist('1', "TURBOFINGERS", BigDecimal.valueOf(0.8)), 1); 
+        race.addTypist(new Typist('2', "QWERTY_QUEEN",  BigDecimal.valueOf(0.6)), 2);
+        race.addTypist(new Typist('3', "HUNT_N_PECK",   BigDecimal.valueOf(0.3)), 3);
+        race.startRace();
+    }
 
     /**
      * Constructor for objects of class TypingRace.
@@ -48,21 +56,11 @@ public class TypingRace
      */
     public void addTypist(Typist theTypist, int seatNumber)
     {
-        if (seatNumber == 1)
-        {
-            seat1Typist = theTypist;
-        }
-        else if (seatNumber == 2)
-        {
-            seat2Typist = theTypist;
-        }
-        else if (seatNumber == 3)
-        {
-            seat3Typist = theTypist;
-        }
-        else
-        {
-            System.out.println("Cannot seat typist at seat " + seatNumber + " — there is no such seat.");
+        switch ( seatNumber) {
+            case 1 -> seat1Typist = theTypist;
+            case 2 -> seat2Typist = theTypist;
+            case 3 -> seat3Typist = theTypist;
+            default -> System.out.println("Cannot seat typist at seat " + seatNumber + " — there is no such seat.");
         }
     }
 
@@ -74,15 +72,16 @@ public class TypingRace
      * Note from Ty: "I didn't bother printing the winner at the end,
      * you can probably figure that out yourself."
      */
+    @SuppressWarnings("UseSpecificCatch")
     public void startRace()
     {
         boolean finished = false;
 
         // Reset all typists to the start of the passage
-        // (Ty was in a hurry here)
         seat1Typist.resetToStart();
         seat2Typist.resetToStart();
-
+        seat3Typist.resetToStart();
+        
         while (!finished)
         {
             // Advance each typist by one turn
@@ -101,11 +100,9 @@ public class TypingRace
 
             // Wait 200ms between turns so the animation is visible
             try {
-                TimeUnit.MILLISECONDS.sleep(200);
+                TimeUnit.MILLISECONDS.sleep(1500);
             } catch (Exception e) {}
         }
-
-        // TODO (Task 2a): Print the winner's name here
     }
 
     /**
@@ -131,20 +128,26 @@ public class TypingRace
         }
 
         // Attempt to type a character
-        if (Math.random() < theTypist.getAccuracy())
+        BigDecimal randomType = BigDecimal.valueOf(Math.random());
+        if ( theTypist.getAccuracy().compareTo(randomType) == 1 ) 
         {
             theTypist.typeCharacter();
         }
 
         // Mistype check — the probability should reflect the typist's accuracy
-        if (Math.random() < theTypist.getAccuracy() * MISTYPE_BASE_CHANCE)
+        randomType = BigDecimal.valueOf(Math.random());
+        BigDecimal mistypeChance = theTypist.getAccuracy().multiply(MISTYPE_BASE_CHANCE);
+        if ( mistypeChance.compareTo(randomType) == 1 )
         {
             theTypist.slideBack(SLIDE_BACK_AMOUNT);
+            theTypist.getStats().registerMistype();
         }
 
         // Burnout check — pushing too hard increases burnout risk
         // (probability scales with accuracy squared, capped at ~0.05)
-        if (Math.random() < 0.05 * theTypist.getAccuracy() * theTypist.getAccuracy())
+        randomType = BigDecimal.valueOf(Math.random());
+        BigDecimal burnoutChance = theTypist.getAccuracy().multiply(theTypist.getAccuracy().multiply(mistypeChance));
+        if ( ( burnoutChance.compareTo(randomType) == 1 ) && ( theTypist.getProgress() != this.passageLength ) )
         {
             theTypist.burnOut(BURNOUT_DURATION);
         }
@@ -158,15 +161,7 @@ public class TypingRace
      */
     private boolean raceFinishedBy(Typist theTypist)
     {
-        // Ty was confident this condition was correct
-        if (theTypist.getProgress() == passageLength)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        return theTypist.getProgress() >= passageLength;
     }
 
     /**
@@ -178,7 +173,7 @@ public class TypingRace
     {
         System.out.print('\u000C'); // Clear terminal
 
-        System.out.println("  TYPING RACE — passage length: " + passageLength + " chars");
+        System.out.println("  TYPING RACE - passage length: " + passageLength + " chars");
         multiplePrint('=', passageLength + 3);
         System.out.println();
 
@@ -193,7 +188,7 @@ public class TypingRace
 
         multiplePrint('=', passageLength + 3);
         System.out.println();
-        System.out.println("  [zz] = burnt out    [<] = just mistyped");
+        System.out.println("  [~] = burnt out    [<] = just mistyped");
     }
 
     /**
@@ -223,6 +218,11 @@ public class TypingRace
         {
             System.out.print('~');
             spacesAfter--; // symbol + ~ together take two characters
+        }
+        else if (theTypist.getStats().getMistype())
+        {
+            System.out.print('<');
+            spacesAfter--;
         }
 
         multiplePrint(' ', spacesAfter);
