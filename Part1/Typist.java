@@ -6,7 +6,6 @@
  * @author Kyla Saunders
  * @version 1
  */
-import java.math.BigDecimal;
 public class Typist
 {
     private final String name;
@@ -14,7 +13,7 @@ public class Typist
     private int progress;
     private boolean burntOut;
     private int burntTurns;
-    private BigDecimal accuracy;
+    private double accuracy;
 
     // Constructor of class Typist
     /**
@@ -26,7 +25,7 @@ public class Typist
      * @param typistAccuracy the typist's accuracy rating, between 0.0 and 1.0
      */
     @SuppressWarnings("UnnecessaryReturnStatement")
-    public Typist(char typistSymbol, String typistName, BigDecimal typistAccuracy)
+    public Typist(char typistSymbol, String typistName, int typistAccuracy)
     {
         this.symbol = typistSymbol;
         this.name = typistName;
@@ -46,9 +45,12 @@ public class Typist
      *
      * @param turns the number of turns the burnout will last
      */
+    @SuppressWarnings("UnnecessaryReturnStatement")
     public void burnOut(int turns)
     {
-
+        this.burntOut = true;
+        this.burntTurns = turns;
+        return;
     }
 
     /**
@@ -56,9 +58,16 @@ public class Typist
      * When the counter reaches zero, the typist recovers automatically.
      * Has no effect if the typist is not currently burnt out.
      */
+    @SuppressWarnings("UnnecessaryReturnStatement")
     public void recoverFromBurnout()
     {
-
+        if ( this.burntOut == true ) {
+            this.burntTurns -= 1;
+            if ( this.burntTurns == 0 ) {
+                this.burntOut = false;
+            }
+        }
+        return;
     }
 
     /**
@@ -68,7 +77,7 @@ public class Typist
      */
     public double getAccuracy()
     {
-        return 0.0; // placeholder - replace with correct implementation
+        return this.accuracy; 
     }
 
     /**
@@ -80,7 +89,7 @@ public class Typist
      */
     public int getProgress()
     {
-        return 0; // placeholder - replace with correct implementation
+        return this.progress; 
     }
 
     /**
@@ -90,7 +99,7 @@ public class Typist
      */
     public String getName()
     {
-        return ""; // placeholder - replace with correct implementation
+        return this.name;
     }
 
     /**
@@ -100,7 +109,7 @@ public class Typist
      */
     public char getSymbol()
     {
-        return ' '; // placeholder - replace with correct implementation
+        return this.symbol;
     }
 
     /**
@@ -111,7 +120,7 @@ public class Typist
      */
     public int getBurnoutTurnsRemaining()
     {
-        return 0; // placeholder - replace with correct implementation
+        return this.burntTurns; 
     }
 
     /**
@@ -120,7 +129,9 @@ public class Typist
      */
     public void resetToStart()
     {
-
+        this.progress = 0;
+        this.burntOut = false;
+        this.burntTurns = 0;
     }
 
     /**
@@ -130,16 +141,18 @@ public class Typist
      */
     public boolean isBurntOut()
     {
-        return false; // placeholder - replace with correct implementation
+        return this.burntOut; // placeholder - replace with correct implementation
     }
 
     /**
      * Advances the typist forward by one character along the passage.
      * Should only be called when the typist is not burnt out.
      */
+    @SuppressWarnings("UnnecessaryReturnStatement")
     public void typeCharacter()
     {
-
+        this.progress += 1;
+        return;
     }
 
     /**
@@ -148,9 +161,15 @@ public class Typist
      *
      * @param amount the number of characters to slide back (must be positive)
      */
+    @SuppressWarnings("UnnecessaryReturnStatement")
     public void slideBack(int amount)
     {
-
+        int newPosition = this.progress - amount;
+        if ( newPosition < 0 ) {
+            newPosition = 0;
+        }
+        this.progress = newPosition;
+        return;
     }
 
     /**
@@ -159,9 +178,19 @@ public class Typist
      *
      * @param newAccuracy the new accuracy rating
      */
+    @SuppressWarnings("UnnecessaryReturnStatement")
     public void setAccuracy(double newAccuracy)
     {
-
+        if ( newAccuracy >= 1 ) {
+            this.accuracy = 1;
+        }
+        else if ( newAccuracy <= 0 ) {
+            this.accuracy = 0;
+        }
+        else {
+            this.accuracy = newAccuracy;
+        }
+        return;
     }
 
     /**
@@ -169,9 +198,11 @@ public class Typist
      *
      * @param newSymbol the new symbol character
      */
+    @SuppressWarnings("UnnecessaryReturnStatement")
     public void setSymbol(char newSymbol)
     {
-
+        this.symbol = newSymbol;
+        return;
     }
 
 }
