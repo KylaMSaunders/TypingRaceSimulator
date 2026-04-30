@@ -1,11 +1,19 @@
 /**
+ * Write a description of class Typist here.
+ *
+ * Starter code generously abandoned by Ty Posaurus, your predecessor,
+ * who typed with two fingers and considered that "good enough".
+ * He left a sticky note: "the slide-back thing is optional probably".
+ * It is not optional. Good luck.
+ * 
  * The class that defines the competitors of a typing race. Allows them
  * to be represented as individuals, storing their individual data and 
  * executing specific methods onto them.
  *
  * @author Kyla Saunders
- * @version 1
+ * @version 2
  */
+import java.math.BigDecimal;
 public class Typist
 {
     private final String name;
@@ -13,7 +21,8 @@ public class Typist
     private int progress;
     private boolean burntOut;
     private int burntTurns;
-    private double accuracy;
+    private BigDecimal accuracy;
+    private final TypistStats stats;
 
     // Constructor of class Typist
     /**
@@ -25,7 +34,7 @@ public class Typist
      * @param typistAccuracy the typist's accuracy rating, between 0.0 and 1.0
      */
     @SuppressWarnings("UnnecessaryReturnStatement")
-    public Typist(char typistSymbol, String typistName, int typistAccuracy)
+    public Typist(char typistSymbol, String typistName, BigDecimal typistAccuracy)
     {
         this.symbol = typistSymbol;
         this.name = typistName;
@@ -34,8 +43,10 @@ public class Typist
         this.progress = 0;
         this.burntOut = false;
         this.burntTurns = 0;
+        this.stats = new TypistStats(typistAccuracy);
         return;
     }
+
 
     // Methods of class Typist
 
@@ -75,7 +86,7 @@ public class Typist
      *
      * @return accuracy as a double between 0.0 and 1.0
      */
-    public double getAccuracy()
+    public BigDecimal getAccuracy()
     {
         return this.accuracy; 
     }
@@ -90,6 +101,15 @@ public class Typist
     public int getProgress()
     {
         return this.progress; 
+    }
+
+    /**
+     * Returns the typist's relevant TypistStats object
+     * @return a TypistStats object
+     */
+    public TypistStats getStats() 
+    {
+        return this.stats;
     }
 
     /**
@@ -132,6 +152,7 @@ public class Typist
         this.progress = 0;
         this.burntOut = false;
         this.burntTurns = 0;
+        this.stats.deregisterMistype();
     }
 
     /**
@@ -152,6 +173,7 @@ public class Typist
     public void typeCharacter()
     {
         this.progress += 1;
+        this.getStats().deregisterMistype();
         return;
     }
 
@@ -179,13 +201,15 @@ public class Typist
      * @param newAccuracy the new accuracy rating
      */
     @SuppressWarnings("UnnecessaryReturnStatement")
-    public void setAccuracy(double newAccuracy)
+    public void setAccuracy(BigDecimal newAccuracy)
     {
-        if ( newAccuracy >= 1 ) {
-            this.accuracy = 1;
+        BigDecimal zero = BigDecimal.valueOf(0);
+        BigDecimal one = BigDecimal.valueOf(1);
+        if ( newAccuracy.compareTo(one) == 1 ) {
+            this.accuracy = one;
         }
-        else if ( newAccuracy <= 0 ) {
-            this.accuracy = 0;
+        else if ( newAccuracy.compareTo(zero) == -1 ) {
+            this.accuracy = zero;
         }
         else {
             this.accuracy = newAccuracy;
