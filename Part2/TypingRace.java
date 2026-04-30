@@ -3,6 +3,8 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import javax.swing.*;
 
 /**
@@ -86,33 +88,63 @@ public class TypingRace
 
     /**
      * Constructor for objects of class TypingRace.
-     * Sets up the race with a passage of the given length.
-     * Initially there are no typists seated.
+     * Sets up the race with a given passage and a list of participants
      *
-     * @param passageLength the number of characters in the passage to type
+     * @param pass the passage to be typed
+     * @param part the list of participants in the race
      */
-    public TypingRace(int passageLength)
-    {
-        this.passageLength = passageLength;
-        seat1Typist = null;
-        seat2Typist = null;
-        seat3Typist = null;
+    public TypingRace (String pass, ArrayList<Typist> part) {
+        this.passage = pass;
+        this.passageLength = pass.length();
+        this.participants = part;
     }
 
     /**
-     * Seats a typist at the given seat number (1, 2, or 3).
-     *
-     * @param theTypist  the typist to seat
-     * @param seatNumber the seat to place them in (1–3)
+     * Declares all Typists by fetching their save data
+     * @param typistNum the number of Typists in the game
+     * @return an ArrayList of every Typist
      */
-    public void addTypist(Typist theTypist, int seatNumber)
-    {
-        switch ( seatNumber) {
-            case 1 -> seat1Typist = theTypist;
-            case 2 -> seat2Typist = theTypist;
-            case 3 -> seat3Typist = theTypist;
-            default -> System.out.println("Cannot seat typist at seat " + seatNumber + " — there is no such seat.");
+    public static ArrayList<Typist> declareTypists (int typistNum) {
+        ArrayList<Typist> typists = new ArrayList<>();
+        try (BufferedReader istream = new BufferedReader(new FileReader("typistSaveData.txt"))) {
+            for ( int c = 0; c < typistNum; c++ ) {
+                String n = istream.readLine();
+                String s = istream.readLine();
+                BigDecimal a = new BigDecimal(istream.readLine());
+                int w = Integer.parseInt(istream.readLine());
+                int p = Integer.parseInt(istream.readLine());
+                int at = Integer.parseInt(istream.readLine());
+                int st = Integer.parseInt(istream.readLine());
+                Typist t = new Typist(n, s, a, w, p, at, st);
+                typists.add(t);
+            }
         }
+        catch ( IOException e ) { }
+        return typists;
+    }
+
+    /**
+     * Creates the race iteration with the given data and opens the race panel, as long as said data is approriate
+     *
+     * @param checkboxes the list of checkboxes, correlating to each Typist
+     * @param typists the list of Typists that can participate
+     * @param pass the passage of text to be typed
+     * @param tabs the JTabbedPane holding each Panel
+     */
+    public static void submitSettings (ArrayList<JCheckBox> checkboxes, ArrayList<Typist> typists, JTextField pass, JTabbedPane tabs) {
+        ArrayList<Typist> participants = new ArrayList<>();
+        for ( int c = 0; c < checkboxes.size(); c++ ) {
+            if ( checkboxes.get(c).isSelected() ) {
+                participants.add(typists.get(c));
+            }
+        }
+        String passage = pass.getText();
+        if ( passage.equals("") || participants.size() < 2 || passage.length() > 150) {
+            return;
+        }
+        tabs.setEnabledAt(1, true);
+        TypingRace r =  new TypingRace(passage, participants);
+        TypingRace.race = r;
     }
 
     /**
